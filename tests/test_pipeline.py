@@ -224,3 +224,13 @@ def test_dashboard_served_by_api(built):
     assert c.get("/api/range").status_code == 200
     assert c.get("/api/llm").json()["llm"] is False      # no key in tests
     assert c.get("/api/machine/M999?at=2025-02-01 10:00").status_code == 400
+
+
+def test_diagnosis_accepts_percent_confidence():
+    from src.agent import Diagnosis
+
+    base = dict(root_cause="unknown", will_fail_24h=False, answer="x", claims=[])
+    fields = {k for k in Diagnosis.model_fields}
+    kw = {k: v for k, v in base.items() if k in fields}
+    assert Diagnosis(**kw, confidence=85).confidence == 0.85
+    assert Diagnosis(**kw, confidence=0.4).confidence == 0.4

@@ -127,23 +127,43 @@ The fleet data, with its abrupt log-driven failures, is where the non-linear mod
 The ablation is the point: a reconstruction model reproduces slow drifts well, so it misses bearing and hydraulic
 degradation and excels at erratic sensors. The level score covers what the autoencoder cannot.
 
-### 5. The agents (root-cause investigation)
+### 5. The agents: does the LangGraph workflow beat a plain ReAct loop?
 
-Three agents share the same six tools and output fields (see [The agent](#the-agent)): `rules` (deterministic, no LLM),
-`react` (generic ReAct baseline) and `graph` (explicit LangGraph workflow with a verification loop).
+Same six tools, same questions, same model: **Qwen2.5-7B-Instruct running locally via Ollama** (12k context, temperature 0,
+$0). 32 held-out questions: 20 postmortems, 6 risk checks, 6 documentation lookups. Raw per-question results are in
+[docs/results/](docs/results/).
 
-| Metric (393 held-out questions) | rules (offline) |
-|---|---|
-| Root-cause accuracy (300 postmortems) | **91.0%** (95% CI 87.7 to 94.0) |
-| Tool-selection accuracy | 100% |
-| Retrieval hit@k / MRR | 90.7% / 0.85 |
-| Latency p50 / cost per question | 0.03 s / $0 |
+| Metric | react (baseline) | **graph** (LangGraph) | rules (no LLM, 393 q) |
+|---|---|---|---|
+| Root-cause accuracy (20 postmortems) | 65% (CI 45 to 85) | **80%** (CI 60 to 95) | 91% |
+| Tool-selection accuracy | 22% | **100%** | 100% |
+| Doc retrieval hit@k | 27% | **92%** | 91% |
+| Unsupported-response rate | 15.6% | **3.1%** | n/a |
+| Mean groundedness | 90.6% | **96.3%** | n/a |
+| Risk-question accuracy (6 q) | **100%** | 67% | 73% |
+| Latency p50 / p95 | **60 s** / 355 s | 119 s / **235 s** | 0.03 s |
 
-> **In progress:** the `react` vs `graph` comparison on a local Qwen2.5-7B model (free, via Ollama) is running and
-> will be added here with its real numbers, whichever agent wins. The `rules` agent was written knowing how the
-> simulator works, so read its score as a ceiling for a rule-based system, not a fair competitor.
+What the numbers do and do not say:
 
-`make eval` for the offline row, `make eval-llm` to reproduce the LLM comparison.
+- **The structured workflow helps most where the design says it should.** It gathers evidence by a routing policy, builds
+  the doc-search query from that evidence (error codes, abnormal sensors) instead of from the question, and verifies its
+  own claims. Retrieval hit rate goes from 27% to 92%, and unsupported responses fall from 15.6% to 3.1%.
+  Tool selection at 100% is largely true by construction (the policy picks the tools), so it is not an LLM achievement.
+- **The accuracy gain is suggestive, not proven.** 80% vs 65% on 20 postmortems has overlapping 95% intervals.
+- **`graph` is worse on risk questions** (4 of 6 vs 6 of 6): it called two machines that were about to fail "safe".
+  With 6 questions this is anecdotal, but it is the first thing I would investigate. It is also weaker on
+  `hydraulic_leak` (1 of 3).
+- **`graph` is slower at the median** (119 s vs 60 s) because it makes an extra verification pass; its tail latency is better
+  because the ReAct loop sometimes wanders.
+- **Caveats:** one run, a small sample, a 7B model, and the groundedness judge is the *same* model that wrote the answers
+  (self-judging flatters both agents). A stronger judge and a bigger sample are the obvious next step:
+  `make eval-llm` is parameterised for it (`./run_llm_eval.sh 100 20 20`, plus a larger `CHAT_MODEL`).
+- The `rules` agent was written knowing how the simulator works, so read its 91% as a ceiling for a rule-based system,
+  not a fair competitor. It exists so the whole harness runs offline.
+
+The run exposed two real failure modes of small local models, both now handled: a 7B model emitted `confidence: 100`
+instead of `1.0` (schema now accepts percentages, with a test), and ReAct tool-call loops that exceed the context window
+(the reason for the 12k-context model copy in [run_llm_eval.sh](run_llm_eval.sh)).
 
 ## Quick start
 

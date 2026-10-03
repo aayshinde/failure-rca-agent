@@ -26,7 +26,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src import config
 from src.eval_set import TOOLS
@@ -52,6 +52,12 @@ class Diagnosis(BaseModel):
     root_cause: Literal[ROOT_CAUSES] = Field(description="failure mode; 'none' if no failure is expected; 'unknown' for doc questions or if undeterminable")
     will_fail_24h: Optional[bool] = Field(None, description="risk questions only")
     confidence: float = Field(ge=0, le=1)
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def _percent_to_fraction(cls, v):
+        """Small local models sometimes answer 85 or 100 (percent) instead of 0.85; accept it rather than crash."""
+        return v / 100 if isinstance(v, (int, float)) and 1 < v <= 100 else v
     answer: str = Field(description="concise answer; cite evidence like [E2] or [D1] after every factual statement")
     evidence_ids: list[str] = Field(default_factory=list)
 
