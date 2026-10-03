@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fleet Reliability Console</title>
+<style>
+:root{
+  --bg:#0b0f14; --panel:#121820; --panel2:#171f29; --line:#232d3a; --text:#e6edf3; --muted:#8b98a8;
+  --ok:#2dd4a7; --warn:#f5b84b; --bad:#ff5d5d; --accent:#6ea8ff; --accent2:#b18cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#16223a 0%,transparent 60%),var(--bg);color:var(--text);
+  font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:800;color:#0b0f14}
+h1{font-size:17px;margin:0;letter-spacing:.2px} .sub{color:var(--muted);font-size:12px}
+.kpis{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:92px}
+.kpi b{display:block;font-size:17px;font-variant-numeric:tabular-nums} .kpi span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+main{display:grid;grid-template-columns:minmax(380px,520px) 1fr;gap:16px;padding:16px 24px 40px;max-width:1500px;margin:auto}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);margin:0 0 12px;font-weight:600;display:flex;align-items:center;gap:8px}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.clock{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.clock .t{font:600 15px var(--mono);font-variant-numeric:tabular-nums}
+button,select,input[type=text]{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font:inherit}
+button{cursor:pointer} button:hover{border-color:var(--accent)} button.primary{background:var(--accent);color:#08121f;border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.5;cursor:wait}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin:12px 0}
+.cell{aspect-ratio:1;border-radius:6px;position:relative;cursor:pointer;border:1px solid transparent;transition:transform .08s}
+.cell:hover{transform:scale(1.12);z-index:2}
+.cell.sel{outline:2px solid var(--text);outline-offset:1px}
+.cell.flag{border-color:#fff}
+.cell.truth::after{content:"";position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #0b0f14}
+.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px;align-items:center}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.stat{background:var(--panel2);border-radius:10px;padding:8px 10px}.stat b{font-size:18px;display:block}.stat span{font-size:11px;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.pill.low{background:#12382f;color:var(--ok)}.pill.medium{background:#3d3015;color:var(--warn)}.pill.high{background:#431b1b;color:var(--bad)}
+.sensors{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.sens{background:var(--panel2);border-radius:10px;padding:10px}
+.sens .n{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)} .sens .n b{color:var(--text);font-family:var(--mono)}
+svg{display:block;width:100%}
+.bars .b{display:grid;grid-template-columns:150px 1fr 56px;gap:8px;align-items:center;font-size:12px;margin:4px 0}
+.bars .bar{height:8px;border-radius:4px;background:var(--panel2);position:relative;overflow:hidden}.bars .bar i{position:absolute;left:0;top:0;bottom:0}
+.mono{font-family:var(--mono)} .muted{color:var(--muted)}
+.logs{max-height:150px;overflow:auto;font:12px var(--mono);color:var(--muted)}
+.logs div{padding:2px 0;border-bottom:1px dashed var(--line)}.logs .error{color:var(--bad)}.logs .warning{color:var(--warn)}
+.inv input[type=text]{flex:1;min-width:260px}
+.steps{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.step{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 10px;font:12px var(--mono);opacity:0;transform:translateY(4px);transition:all .3s}
+.step.on{opacity:1;transform:none;border-color:var(--accent)}
+.verdict{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
+.rc{font-size:22px;font-weight:700}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+details{background:var(--panel2);border-radius:10px;padding:8px 12px;margin-top:8px}summary{cursor:pointer;color:var(--muted)}
+pre{white-space:pre-wrap;font:12px/1.5 var(--mono);color:#c8d3df;max-height:300px;overflow:auto;margin:8px 0 0}
+#tip{position:fixed;pointer-events:none;background:#000c;backdrop-filter:blur(4px);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;display:none;z-index:9}
+table.ops{width:100%;border-collapse:collapse;font-size:12px}
+table.ops th{color:var(--muted);font-weight:500;text-align:right;padding:4px 6px;border-bottom:1px solid var(--line)}
+table.ops td{text-align:right;padding:5px 6px;font-variant-numeric:tabular-nums;border-bottom:1px dashed var(--line)}
+table.ops th:first-child,table.ops td:first-child{text-align:left}
+table.ops tr.tuned td{background:#1b2740;color:#fff;font-weight:600}
+.hint{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">R</div>
+  <div><h1>Fleet Reliability Console</h1><div class="sub">Predict failures · detect anomalies · explain root causes with cited evidence</div></div>
+  <div class="kpis" id="kpis"></div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <h2>Fleet risk map <span class="muted" style="text-transform:none;letter-spacing:0">— 100 machines, scored live by XGBoost</span></h2>
+      <div class="clock">
+        <button id="play" title="Play / pause">▶</button>
+        <span class="t" id="clock">—</span>
+        <select id="jump" style="margin-left:auto;max-width:200px"><option value="">Jump to a real failure…</option></select>
+      </div>
+      <input type="range" id="slider" min="0" max="100" value="0">
+      <div class="grid" id="grid"></div>
+      <div class="legend">
+        <span><i style="background:var(--ok)"></i>low</span><span><i style="background:var(--warn)"></i>elevated</span><span><i style="background:var(--bad)"></i>high</span>
+        <span><i style="background:none;border:1px solid #fff"></i>flagged by model</span>
+        <span><i style="background:#fff;border-radius:50%;width:7px;height:7px"></i>fails within 24h (ground truth)</span>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="hint">Drag the clock through the held-out test period (the models never saw it). White dots are machines that really fail in the next 24 hours.</div>
+    </section>
+    <section class="card" id="ops">
+      <h2>Operating points <span class="muted" style="text-transform:none;letter-spacing:0">— what operators actually experience</span></h2>
+      <div class="muted">Loading…</div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card" id="machine">
+      <h2>Machine drill-down</h2>
+      <div class="muted">Select a machine on the map.</div>
+    </section>
+
+    <section class="card inv">
+      <h2>Root-cause investigation <span class="muted" style="text-transform:none;letter-spacing:0">— agent picks tools, gathers evidence, cites it</span></h2>
+      <div class="row">
+        <input type="text" id="q" placeholder="Machine M053 tripped offline at 2025-08-08 03:00. What is the root cause?">
+        <select id="variant"><option value="rules">rules (offline)</option></select>
+        <button class="primary" id="go">Investigate</button>
+      </div>
+      <div id="result"></div>
+    </section>
+  </div>
+</main>
+<div id="tip"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const SENSORS = ["volt","rotate","pressure","vibration","temperature","current"];
+const state = {range:null, times:[], idx:0, sel:null, incidents:[], fleet:null, timer:null};
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = t => t.replace("T"," ").slice(0,16);
+const getJSON = async u => { const r = await fetch(u); if(!r.ok) throw new Error((await r.json()).detail||r.statusText); return r.json(); };
+
+// ---------------------------------------------------------------- colours
+function riskColor(p, thr){
+  const x = Math.min(1, p / (thr*1.25));
+  const stops = [[45,212,167],[245,184,75],[255,93,93]];
+  const f = x*2, i = Math.min(1, Math.floor(f)), k = f - i;
+  const c = stops[i].map((v,j)=>Math.round(v+(stops[i+1][j]-v)*k));
+  return `rgb(${c})`;
+}
+
+// ---------------------------------------------------------------- charts (hand-rolled SVG, no dependencies)
+function line(vals, {w=300,h=60,min=null,max=null,color="#6ea8ff",marks=[],hline=null,fill=false}={}){
+  const v = vals.filter(x=>x!=null);
+  if(!v.length) return `<svg viewBox="0 0 ${w} ${h}"></svg>`;
+  const lo = min ?? Math.min(...v), hi = max ?? Math.max(...v), span = (hi-lo)||1;
+  const X = i => i/(vals.length-1)*w, Y = x => h-3-(x-lo)/span*(h-6);
+  let d = "", pen = false;
+  vals.forEach((x,i)=>{ if(x==null){pen=false;return} d += (pen?"L":"M")+X(i).toFixed(1)+" "+Y(x).toFixed(1); pen=true });
+  let s = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" height="${h}">`;
+  if(hline!=null && hline>=lo && hline<=hi) s += `<line x1="0" x2="${w}" y1="${Y(hline)}" y2="${Y(hline)}" stroke="#ff5d5d" stroke-dasharray="3 3" stroke-width="1" opacity=".7"/>`;
+  if(lo<0&&hi>0&&min!=null) s += `<line x1="0" x2="${w}" y1="${Y(0)}" y2="${Y(0)}" stroke="#2a3645" stroke-width="1"/>`;
+  if(fill) s += `<path d="${d} L${w} ${h} L0 ${h}Z" fill="${color}" opacity=".12"/>`;
+  s += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" vector-effect="non-scaling-stroke"/>`;
+  marks.forEach(i=>{ if(i>=0) s += `<line x1="${X(i)}" x2="${X(i)}" y1="0" y2="${h}" stroke="#fff" stroke-width="1.5" vector-effect="non-scaling-stroke" opacity=".9"/>` });
+  return s+"</svg>";
+}
+
+// ---------------------------------------------------------------- fleet
+async function loadFleet(){
+  const at = state.times[state.idx];
+  $("#clock").textContent = fmt(at);
+  const f = await getJSON(`/api/fleet?at=${encodeURIComponent(at)}`);
+  if(at !== state.times[state.idx]) return;            // slider moved on
+  state.fleet = f;
+  const g = $("#grid"); g.innerHTML = "";
+  f.machines.forEach(m=>{
+    const d = document.createElement("div");
+    d.className = "cell"+(m.flagged?" flag":"")+(m.fails_24h?" truth":"")+(state.sel===m.machine_id?" sel":"");
+    d.style.background = riskColor(m.p, f.threshold);
+    d.onmouseenter = e => tip(e, `<b>${m.machine_id}</b> · ${m.model}<br>P(fail 24h) = ${(m.p*100).toFixed(0)}%${m.fails_24h?"<br>⚠ fails within 24h":""}`);
+    d.onmousemove = e => tip(e); d.onmouseleave = () => tip(null);
+    d.onclick = () => select(m.machine_id);
+    g.appendChild(d);
+  });
+  const s = f.summary;
+  $("#stats").innerHTML = [["flagged",s.flagged],["caught",s.true_positive],["missed",s.missed],["failing ≤24h",s.failing_soon]]
+    .map(([k,v])=>`<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+  if(state.sel) loadMachine();
+}
+function tip(e, html){
+  const t = $("#tip");
+  if(e===null){t.style.display="none";return}
+  if(html){t.innerHTML = html}
+  t.style.display="block"; t.style.left=(e.clientX+14)+"px"; t.style.top=(e.clientY+14)+"px";
+}
+function setIdx(i){ state.idx = Math.max(0,Math.min(state.times.length-1,i)); $("#slider").value = state.idx; return loadFleet(); }
+function select(id){ state.sel = id; document.querySelectorAll(".cell").forEach(c=>c.classList.remove("sel")); loadFleet(); }
+
+// ---------------------------------------------------------------- machine panel
+let mseq = 0;
+async function loadMachine(){
+  const id = state.sel, at = state.times[state.idx], seq = ++mseq;
+  const d = await getJSON(`/api/machine/${id}?at=${encodeURIComponent(at)}`);
+  if(seq!==mseq) return;
+  const ti = new Map(d.times.map((t,i)=>[t.slice(0,13),i]));
+  const marks = d.failures.map(f=>ti.get(f.slice(0,13))??-1);
+  const r = d.risk_now, a = d.anomaly_now;
+  const p = r.p_fail_24h;
+  const sens = SENSORS.map(s=>{
+    const x = d.sensors[s], last = x.raw.filter(v=>v!=null).slice(-1)[0], z = x.z.filter(v=>v!=null).slice(-1)[0];
+    const hot = Math.abs(z)>2.5;
+    return `<div class="sens"><div class="n"><span>${s}</span><b style="color:${hot?"var(--bad)":"var(--text)"}">${last} ${x.unit}</b></div>
+      ${line(x.z,{h:46,min:-6,max:6,color:hot?"#ff5d5d":"#6ea8ff",marks})}</div>`}).join("");
+  const maxf = Math.max(...d.factors.map(f=>Math.abs(f.shap)),1e-6);
+  $("#machine").innerHTML = `
+    <h2>Machine drill-down</h2>
+    <div class="row" style="margin-bottom:12px">
+      <span style="font-size:22px;font-weight:700" class="mono">${d.machine_id}</span><span class="muted">${d.model}</span>
+      <span class="pill ${r.risk_level}">${r.risk_level} risk · ${(p*100).toFixed(0)}%</span>
+      <span class="pill ${a.anomalous?"high":"low"}">${a.anomalous?"anomalous":"normal"} · score ${a.latest_score}/${a.threshold}</span>
+      <span class="muted" style="margin-left:auto">${fmt(d.at)}</span>
+    </div>
+    <div class="muted" style="font-size:12px;margin-bottom:4px">P(failure in 24h) <span style="color:#ff5d5d">— threshold ${d.risk.threshold}</span> &nbsp;·&nbsp; anomaly score (LSTM-autoencoder + level) &nbsp;·&nbsp; <b style="color:#fff">│</b> = actual failure</div>
+    ${line(d.risk.p,{h:70,min:0,max:1,color:"#b18cff",hline:d.risk.threshold,marks,fill:true})}
+    ${line(d.anomaly.score,{h:50,min:0,color:"#f5b84b",hline:d.anomaly.threshold,marks,fill:true})}
+    <div style="height:10px"></div>
+    <div class="sensors">${sens}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px" class="two">
+      <div class="bars"><div class="muted" style="font-size:12px;margin-bottom:4px">What drives this prediction (SHAP, <span style="color:var(--bad)">▮ raises</span> / <span style="color:var(--ok)">▮ lowers</span> risk)</div>
+        ${d.factors.map(f=>`<div class="b"><span class="mono" title="${f.feature} = ${f.value}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.feature}</span>
+          <div class="bar"><i style="width:${Math.abs(f.shap)/maxf*100}%;background:${f.shap>0?"var(--bad)":"var(--ok)"}"></i></div>
+          <span class="muted">${f.shap>0?"+":""}${f.shap}</span></div>`).join("")}</div>
+      <div><div class="muted" style="font-size:12px;margin-bottom:4px">Controller warnings / errors (last 7d)</div>
+        <div class="logs">${d.log_events.length?d.log_events.slice().reverse().map(l=>`<div class="${l.severity}">${fmt(l.time)} ${l.code} ${l.severity}</div>`).join(""):"none"}</div></div>
+    </div>
+    <div style="margin-top:12px"><button id="invhere">Investigate ${d.machine_id} at this time →</button></div>`;
+  $("#invhere").onclick = () => { $("#q").value = `Machine ${d.machine_id} tripped offline at ${fmt(d.at).replace("T"," ")}. What is the root cause?`; $("#go").click(); $("#go").scrollIntoView({behavior:"smooth",block:"center"}) };
+}
+
+// ---------------------------------------------------------------- investigation
+const esc = s => String(s).replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+async function investigate(){
+  const q = $("#q").value.trim() || $("#q").placeholder, btn = $("#go");
+  btn.disabled = true; btn.textContent = "Investigating…"; $("#result").innerHTML = `<div class="hint">Planning → gathering evidence → retrieving runbooks → diagnosing…</div>`;
+  try{
+    const r = await fetch("/investigate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question:q,variant:$("#variant").value})});
+    const raw = await r.text(); let j; try{ j = JSON.parse(raw) }catch{ throw new Error("Server error: "+raw.slice(0,120)) }
+    if(!r.ok) throw new Error(j.detail||"error");
+    const m = q.match(/\bM\d{3}\b/i), t = q.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/);
+    const truth = m&&t ? state.incidents.find(i=>i.machine_id===m[0].toUpperCase() && i.time.slice(0,16)===t[0]) : null;
+    const verdict = truth ? (truth.root_cause===j.root_cause
+        ? `<span class="ok">✓ matches ground truth (${truth.root_cause})</span>` : `<span class="bad">✗ ground truth: ${truth.root_cause}</span>`) : `<span class="muted">no matching incident on record</span>`;
+    $("#result").innerHTML = `
+      <div class="steps" id="steps">${j.tools_called.map(t=>`<span class="step">⚙ ${t}</span>`).join("")}</div>
+      <div class="verdict"><span class="rc mono">${(j.root_cause||"unknown").replace(/_/g," ")}</span>${verdict}
+        <span class="muted">${j.latency_s}s · ${j.usage.llm_calls} LLM calls · $${j.usage.cost_usd}</span></div>
+      <div>${esc(j.answer)}</div>
+      <details><summary>Retrieved runbook sections (${j.retrieved_chunks.length})</summary><pre>${j.retrieved_chunks.map(esc).join("\n")}</pre></details>
+      <details><summary>Evidence the agent saw (citable as [E#] / [D#])</summary><pre>${esc(j.evidence_text||"")}</pre></details>`;
+    [...document.querySelectorAll(".step")].forEach((s,i)=>setTimeout(()=>s.classList.add("on"),150*i));
+  }catch(e){ $("#result").innerHTML = `<div class="bad">${esc(e.message)}</div>`; }
+  btn.disabled = false; btn.textContent = "Investigate";
+}
+
+// ---------------------------------------------------------------- boot
+async function boot(){
+  const [range, inc, llm, metrics] = await Promise.all([getJSON("/api/range"),getJSON("/api/incidents"),getJSON("/api/llm"),getJSON("/metrics").catch(()=>null)]);
+  state.range = range; state.incidents = inc;
+  const t0 = new Date(range.start.replace(" ","T")+"Z"), t1 = new Date(range.end.replace(" ","T")+"Z");
+  for(let t=t0; t<=t1; t=new Date(t.getTime()+3600e3)) state.times.push(t.toISOString().slice(0,16).replace("T"," "));
+  $("#slider").max = state.times.length-1;
+  $("#jump").innerHTML += inc.filter((_,i)=>i%4===0).map(i=>`<option value="${i.id}">${i.time.slice(0,16)} · ${i.machine_id} · ${i.root_cause}</option>`).join("");
+  if(llm.llm) $("#variant").innerHTML += `<option value="graph">graph (LangGraph + LLM)</option><option value="react">react (baseline)</option>`;
+  const mm = metrics && metrics.models && metrics.models.risk_xgb, ag = metrics && metrics.agent && Object.values(metrics.agent.variants||{})[0];
+  const kp = [];
+  if(mm) kp.push(["Risk AUROC", mm.test_auroc.toFixed(2)], ["Failures caught", Math.round(mm.test_event_recall*100)+"%"]);
+  if(ag && ag.root_cause_acc!=null) kp.push(["Root-cause acc.", (ag.root_cause_acc*100).toFixed(0)+"%"]);
+  $("#kpis").innerHTML = kp.map(([k,v])=>`<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("");
+
+  getJSON("/api/operating-points").then(o=>{
+    const rows = o.operating_points.map(r=>`<tr class="${r.threshold===o.tuned_threshold?"tuned":""}"><td>${r.threshold}${r.threshold===o.tuned_threshold?" ★":""}</td>
+      <td>${r.caught_pct}%</td><td>${r.lead_median_h} h</td><td>${r.false_alerts_per_machine_month}</td><td>${r.precision_pct}%</td></tr>`).join("");
+    $("#ops").innerHTML = `<h2>Operating points <span class="muted" style="text-transform:none;letter-spacing:0">— what operators actually experience</span></h2>
+      <table class="ops"><tr><th>threshold</th><th>failures caught</th><th>median warning</th><th>false alerts / machine / month</th><th>alert precision</th></tr>${rows}</table>
+      <div class="hint">${o.operating_points[0].failures} real failures in the held-out test period. ★ = threshold tuned for F1 on a validation slice. Lower the threshold and you catch more, earlier, at the price of alert fatigue.</div>`;
+    const t = o.operating_points.find(r=>r.threshold===o.tuned_threshold);
+    if(t) $("#kpis").insertAdjacentHTML("beforeend",`<div class="kpi"><b>${t.lead_median_h} h</b><span>median warning</span></div>`);
+  }).catch(()=>{ $("#ops").remove() });
+  $("#slider").oninput = e => { state.idx = +e.target.value; clearTimeout(boot.d); boot.d = setTimeout(loadFleet,60); $("#clock").textContent = fmt(state.times[state.idx]); };
+  $("#play").onclick = () => {
+    if(state.timer){clearInterval(state.timer);state.timer=null;$("#play").textContent="▶";return}
+    $("#play").textContent="⏸"; state.timer = setInterval(()=>setIdx(state.idx+3),900);
+  };
+  $("#jump").onchange = e => {
+    const i = state.incidents.find(x=>x.id===e.target.value); if(!i) return;
+    const k = state.times.indexOf(i.time.slice(0,16).replace("T"," ")); state.sel = i.machine_id;
+    $("#q").value = `Machine ${i.machine_id} tripped offline at ${i.time.slice(0,16)}. What is the root cause?`;
+    setIdx(Math.max(0,k-6));
+  };
+  $("#go").onclick = investigate;
+  const j = state.incidents[Math.floor(state.incidents.length/3)];
+  state.sel = j.machine_id; $("#q").value = `Machine ${j.machine_id} tripped offline at ${j.time.slice(0,16)}. What is the root cause?`;
+  const hp = new URLSearchParams(location.hash.slice(1));          // deep links: #t=2025-09-21 03:00&m=M013&investigate
+  if(hp.get("m")) state.sel = hp.get("m");
+  const k0 = hp.get("t") ? state.times.indexOf(hp.get("t")) : -1;
+  await setIdx(k0>=0 ? k0 : Math.max(0,state.times.indexOf(j.time.slice(0,16))-6));
+  if(hp.has("investigate")) investigate();
+}
+boot().catch(e=>{ document.body.insertAdjacentHTML("beforeend",`<pre style="padding:24px;color:#ff5d5d">${e.message}\nRun python run_pipeline.py first.</pre>`) });
+</script>
+</body>
+</html>
