@@ -15,7 +15,12 @@
 
 </div>
 
-> **Try it in 3 commands, no API key and no cost:** `make setup && make data && make demo`, then open http://localhost:8000
+<p align="center"><b><a href="https://aayshinde.github.io/failure-rca-agent/">▶ Open the live interactive demo</a></b> (no install, no login; runs in your browser)<br>
+<sub>Scrub the clock through the held-out test period, click any machine, and replay a real failure end to end.</sub></p>
+
+<p align="center"><img src="docs/img/demo.gif" alt="Clock scrubbing toward a real failure on M013: risk jumps from 15% to 99% about 12 hours before the machine trips" width="760"></p>
+
+> **Or run it yourself in 3 commands, no API key and no cost:** `make setup && make data && make demo`, then open http://localhost:8000
 
 ## What makes it different
 
@@ -287,6 +292,7 @@ src/baselines.py      ablations + linear baseline for the risk model
 src/lead_time.py      alert episodes: warning time and false-alert burden
 src/benchmark_cmapss.py  public-benchmark check on NASA C-MAPSS
 deploy/huggingface/   free live-demo deployment (Docker Space)
+src/export_static.py  pre-computes the serverless GitHub Pages demo (docs/)
 src/viz.py            data shaping for the dashboard (fleet snapshot, machine drill-down)
 dashboard/index.html  single-file console, hand-written SVG charts, zero JS dependencies
 run_pipeline.py       runs all offline steps

@@ -1,4 +1,4 @@
-.PHONY: setup data demo eval eval-llm benchmark baselines lead-time test docker
+.PHONY: export-demo setup data demo eval eval-llm benchmark baselines lead-time test docker
 PY ?= python
 
 setup:          ## create venv + install deps
@@ -30,3 +30,6 @@ baselines:    ## ablations and linear baseline
 
 lead-time:      ## warning lead time and false-alert burden per threshold
 	$(PY) -m src.lead_time
+
+export-demo:    ## rebuild the static GitHub Pages demo in docs/ (~4 min)
+	$(PY) -m src.export_static
