@@ -8,7 +8,7 @@
 ![pytorch](https://img.shields.io/badge/PyTorch-LSTM%20autoencoder-ee4c2c?logo=pytorch&logoColor=white)
 ![xgboost](https://img.shields.io/badge/XGBoost-AUROC%200.87-1f77b4)
 ![langgraph](https://img.shields.io/badge/LangGraph-agent-1c3c3c)
-![tests](https://img.shields.io/badge/tests-13%20offline-2dd4a7)
+[![CI](https://github.com/aayshinde/failure-rca-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/aayshinde/failure-rca-agent/actions/workflows/ci.yml)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 
 <img src="docs/img/dashboard.png" alt="Fleet Reliability Console: fleet risk map, machine drill-down and root-cause investigation" width="920">
