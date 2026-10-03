@@ -1,4 +1,4 @@
-.PHONY: setup data demo eval eval-llm benchmark lead-time test docker
+.PHONY: setup data demo eval eval-llm benchmark baselines lead-time test docker
 PY ?= python
 
 setup:          ## create venv + install deps
@@ -24,6 +24,9 @@ eval-llm:       ## compare react vs graph agents on a LOCAL Ollama model: free, 
 
 benchmark:      ## validate the modelling approach on NASA C-MAPSS (downloads ~12 MB)
 	$(PY) -m src.benchmark_cmapss
+
+baselines:    ## ablations and linear baseline
+	$(PY) -m src.baselines
 
 lead-time:      ## warning lead time and false-alert burden per threshold
 	$(PY) -m src.lead_time
