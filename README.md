@@ -20,6 +20,12 @@
 
 <p align="center"><img src="docs/img/demo.gif" alt="Clock scrubbing toward a real failure on M013: risk jumps from 15% to 99% about 12 hours before the machine trips" width="760"></p>
 
+> **In 30 seconds:** an early-warning system for factory machines. It warns maintenance teams about a day before a machine
+> breaks, and when one does break, an AI assistant explains the most likely cause and shows the evidence it used.
+> **Problem:** breakdowns are costly and the clues are spread across sensors, error logs and repair manuals.
+> **Built:** models that watch 100 simulated machines, plus an AI agent that gathers the evidence and answers with citations.
+> **Result:** 85% of failures caught with a median 20 h of notice and 0.18 false alerts per machine per month.
+
 > **Or run it yourself in 3 commands, no API key and no cost:** `make setup && make data && make demo`, then open http://localhost:8000
 
 ## What makes it different
