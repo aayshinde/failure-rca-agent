@@ -157,9 +157,9 @@ const api = {
     const m = await staticMeta(); S.fleet = S.fleet || (await getJSON("data/fleet.json")).p;
     const k = Math.min(m.n-1, idxOf(at)), t = ms(at), thr = m.risk_threshold, rows = [];
     m.machines.forEach((mc,i)=>{
-      const p = S.fleet[i][k]/1000;
+      const raw = S.fleet[i][k], p = raw===NA ? null : raw/1000;       // null = no score this hour (machine down)
       const fails = m.incidents.some(x => x.machine_id===mc.id && ms(x.time)>t && ms(x.time)<=t+24*3600e3);
-      rows.push({machine_id:mc.id, model:mc.model, p, flagged:p>=thr, fails_24h:fails});
+      rows.push({machine_id:mc.id, model:mc.model, p, flagged:p!=null && p>=thr, fails_24h:fails});
     });
     const fl = rows.filter(r=>r.flagged);
     return {at, threshold:thr, machines:rows, summary:{n:rows.length, flagged:fl.length, true_positive:fl.filter(r=>r.fails_24h).length,
@@ -237,8 +237,9 @@ async function loadFleet(){
   f.machines.forEach(m=>{
     const d = document.createElement("div");
     d.className = "cell"+(m.flagged?" flag":"")+(m.fails_24h?" truth":"")+(state.sel===m.machine_id?" sel":"");
-    d.style.background = riskColor(m.p, f.threshold);
-    d.onmouseenter = e => tip(e, `<b>${m.machine_id}</b> · ${m.model}<br>P(fail 24h) = ${(m.p*100).toFixed(0)}%${m.fails_24h?"<br>⚠ fails within 24h":""}`);
+    d.style.background = m.p==null ? "#1a2330" : riskColor(m.p, f.threshold);
+    d.onmouseenter = e => tip(e, m.p==null ? `<b>${m.machine_id}</b> · ${m.model}<br>no score this hour (machine offline)${m.fails_24h?"<br>⚠ fails within 24h":""}`
+      : `<b>${m.machine_id}</b> · ${m.model}<br>P(fail 24h) = ${(m.p*100).toFixed(0)}%${m.fails_24h?"<br>⚠ fails within 24h":""}`);
     d.onmousemove = e => tip(e); d.onmouseleave = () => tip(null);
     d.onclick = () => select(m.machine_id);
     g.appendChild(d);
